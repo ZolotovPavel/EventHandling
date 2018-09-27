@@ -36,7 +36,7 @@ class IEvent
         template<class TSome>
         bool operator-=( TSome&& some )
         {
-            return removeHandler( handlers::HandlerCast<TSome>::cast<TParams...>( some ) );
+            return removeHandler( handlers::HandlerCast<TSome>::template cast<TParams...>( some ) );
         }
 
     protected:
@@ -56,6 +56,7 @@ class IEvent
 template<class ...TParams>
 class TEvent : public IEvent<TParams...>
 {
+    using TMyEventHandlerPtr = typename IEvent<TParams...>::TMyEventHandlerPtr;
     using TEventHandlerIt = typename std::list<TMyEventHandlerPtr>::const_iterator;
 
     public:
