@@ -30,3 +30,35 @@
 *.exe
 *.out
 *.app
+
+#VS dir
+.vs
+LogServer/delete_files/
+LogServer/upload/
+
+# User-specific files
+*.suo
+*.user
+*.sln.docstates
+
+# Build results
+
+[Dd]ebug/
+[Rr]elease/
+x64/
+build/
+[Bb]in/
+[Oo]bj/
+Win32/
+[Rr]elease_Full/
+build-UpdatingSystem*/
+
+# Visual C++ cache files
+ipch/
+*.aps
+*.ncb
+*.opensdf
+*.sdf
+*.cachefile
+*.db
+*.opendb

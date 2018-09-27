@@ -1,0 +1,86 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Header Files\events">
+      <UniqueIdentifier>{2135e9ed-c0fc-4d56-afb7-7bed057d520b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\events">
+      <UniqueIdentifier>{b3776df6-ec74-4f60-906f-c13f051e0ca6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\events\handlers">
+      <UniqueIdentifier>{ecf0bc22-ba2d-46af-b0d6-e4940e9d7795}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\events\helpers">
+      <UniqueIdentifier>{a07ea855-a2c5-40b0-a87d-ce3e35605529}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\events\joins">
+      <UniqueIdentifier>{9426a9b6-f0d2-45b4-845f-fa4e6d030025}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\events\joins">
+      <UniqueIdentifier>{94ad38f2-5707-49ed-bf65-e1fcdebcbfdb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="eventhandling.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="events\event.hpp">
+      <Filter>Header Files\events</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\abstracteventhandler.hpp">
+      <Filter>Header Files\events\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\eventhandlerptr.h">
+      <Filter>Header Files\events\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\functoreventhandler.hpp">
+      <Filter>Header Files\events\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\handlercast.hpp">
+      <Filter>Header Files\events\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\methodeventhandler.hpp">
+      <Filter>Header Files\events\handlers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\helpers\is_equatable.hpp">
+      <Filter>Header Files\events\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\joins\abstracteventjoin.h">
+      <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+    <ClInclude Include="events\joins\eventjoinwrapper.h">
+      <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+    <ClInclude Include="events\joins\eventjoinwrapper.hpp">
+      <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+    <ClInclude Include="events\joins\handlereventjoin.h">
+      <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+    <ClInclude Include="events\joins\handlereventjoin.hpp">
+      <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="events\joins\abstracteventjoin.cpp">
+      <Filter>Source Files\events\joins</Filter>
+    </ClCompile>
+    <ClCompile Include="events\joins\eventjoinwrapper.cpp">
+      <Filter>Source Files\events\joins</Filter>
+    </ClCompile>
+    <ClCompile Include="test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+</Project>
