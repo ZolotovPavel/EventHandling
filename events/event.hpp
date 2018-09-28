@@ -15,6 +15,19 @@
 namespace events {
 
 
+namespace
+{
+
+    template<class ...TParams>
+    struct TypeHelper
+    {
+        using TEventHandlerPtr = handlers::TEventHandlerPtr<TParams...>;
+        using TEventHandlerIt = typename std::list<TEventHandlerPtr>::const_iterator;
+    };
+
+} //
+
+
 namespace joins
 {
     template<class ...TParams> class HandlerEventJoin;
@@ -41,7 +54,7 @@ class IEvent
 
     protected:
 
-        using TMyEventHandlerPtr = handlers::TEventHandlerPtr<TParams...>;
+        using TMyEventHandlerPtr = typename TypeHelper<TParams...>::TEventHandlerPtr;
 
         IEvent() {}
 
@@ -53,84 +66,130 @@ class IEvent
 };
 
 
+namespace
+{
+
+    template<class ...TParams>
+    struct EventCore
+    {
+        using TMyHandlerPtr = typename TypeHelper<TParams...>::TEventHandlerPtr;
+
+        std::list<TMyHandlerPtr> handlers;
+        mutable std::shared_mutex coreMutex;
+    };
+
+
+    template<class ...TParams>
+    class HandlerRunner
+    {
+        using TMyEventCore = EventCore<TParams...>;
+        using TMyHandlerIt = typename TypeHelper<TParams...>::TEventHandlerIt;
+
+        public:
+
+            HandlerRunner( TMyEventCore& eventCore ) :
+                m_eventCore( eventCore ),
+                currentIt(),
+                wasRemoving( false )
+            {
+            }
+
+            void run( TParams... params )
+            {
+                m_eventCore.coreMutex.lock_shared();
+
+                currentIt = m_eventCore.handlers.begin();
+                wasRemoving = false;
+                while( currentIt != m_eventCore.handlers.end() )
+                {
+                    m_eventCore.coreMutex.unlock_shared();
+                    ( *currentIt )->call( params... );
+                    m_eventCore.coreMutex.lock_shared();
+
+                    if( wasRemoving )
+                        wasRemoving = false;
+                    else
+                        ++currentIt;
+                }
+
+                m_eventCore.coreMutex.unlock_shared();
+            }
+
+            TMyHandlerIt currentIt;
+            mutable bool wasRemoving;
+
+        private:
+
+            TMyEventCore& m_eventCore;
+    };
+
+} //
+
 template<class ...TParams>
 class TEvent : public IEvent<TParams...>
 {
-    using TMyEventHandlerPtr = typename IEvent<TParams...>::TMyEventHandlerPtr;
-    using TEventHandlerIt = typename std::list<TMyEventHandlerPtr>::const_iterator;
+    using TMyEventHandlerPtr = typename TypeHelper<TParams...>::TEventHandlerPtr;
+    using TMyEventHandlerIt = typename TypeHelper<TParams...>::TEventHandlerIt;
+    using TMyHandlerRunner = HandlerRunner<TParams...>;
 
     public:
 
         TEvent() :
-            m_handlers(),
-            m_currentIt(),
-            m_isCurrentItRemoved( false ),
-            m_handlerListMutex()
+            m_core()
         {
         }
 
         void operator()( TParams... params )
         {
-            m_handlerListMutex.lock_shared();
-            
-            m_isCurrentItRemoved = false;
-            m_currentIt = m_handlers.begin();
-            while( m_currentIt != m_handlers.end() )
-            {
-                m_handlerListMutex.unlock_shared();
-                ( *m_currentIt )->call( params... );
-                m_handlerListMutex.lock_shared();
+            TMyHandlerRunner newHandlerRunner( m_core );
 
-                if( m_isCurrentItRemoved )
-                {
-                    m_isCurrentItRemoved = false;
+            m_core.coreMutex.lock_shared();
+            auto it = m_handlerRunners.insert( m_handlerRunners.end(), &newHandlerRunner );
+            m_core.coreMutex.unlock_shared();
 
-                    TEventHandlerIt removedIt = m_currentIt;
-                    ++m_currentIt;
+            newHandlerRunner.run( params... );
 
-                    deleteHandler( removedIt );
-                }
-                else
-                {
-                    ++m_currentIt;
-                }
-            }
-
-            m_handlerListMutex.unlock_shared();
+            m_core.coreMutex.lock_shared();
+            m_handlerRunners.erase( it );
+            m_core.coreMutex.unlock_shared();
         }
 
     protected:
 
         virtual bool isHandlerAdded( const TMyEventHandlerPtr& eventHandler ) const override
         {
-            std::shared_lock<std::shared_mutex> _handlerListMutexLock( m_handlerListMutex );
+            std::shared_lock<std::shared_mutex> _coreMutexLock( m_core.coreMutex );
 
-            return ( findEventHandler( eventHandler ) != m_handlers.end() );
+            return ( findEventHandler( eventHandler ) != m_core.handlers.end() );
 
         }
         virtual bool addHandler( TMyEventHandlerPtr eventHandler ) override
         {
-            std::unique_lock<std::shared_mutex> _handlerListMutexLock( m_handlerListMutex );
+            std::unique_lock<std::shared_mutex> _coreMutexLock( m_core.coreMutex );
 
-            if( findEventHandler( eventHandler ) == m_handlers.end() )
+            if( findEventHandler( eventHandler ) == m_core.handlers.end() )
             {
-                m_handlers.push_back( std::move( eventHandler ) );
+                m_core.handlers.push_back( std::move( eventHandler ) );
                 return true;
             }
             return false;
         }
         virtual bool removeHandler( TMyEventHandlerPtr eventHandler ) override
         {
-            std::unique_lock<std::shared_mutex> _handlerListMutexLock( m_handlerListMutex );
+            std::unique_lock<std::shared_mutex> _coreMutexLock( m_core.coreMutex );
 
             auto it = findEventHandler( eventHandler );
-            if( it != m_handlers.end() )
+            if( it != m_core.handlers.end() )
             {
-                if( it == m_currentIt )
-                    m_isCurrentItRemoved = true;
-                else
-                    deleteHandler( it );
-
+                for( TMyHandlerRunner* oneHandlerRunner : m_handlerRunners )
+                {
+                    if( it == oneHandlerRunner->currentIt )
+                    {
+                        ++oneHandlerRunner->currentIt;
+                        oneHandlerRunner->wasRemoving = true;
+                    }
+                }
+                m_core.handlers.erase( it );
                 return true;
             }
             return false;
@@ -138,27 +197,17 @@ class TEvent : public IEvent<TParams...>
 
     private:
 
-        // использовать под залоченным для чтения 'm_handlerListMutex'
-        inline TEventHandlerIt findEventHandler( const TMyEventHandlerPtr& eventHandler ) const noexcept
+        // использовать под залоченным для чтения 'm_core.coreMutex'
+        inline TMyEventHandlerIt findEventHandler( const TMyEventHandlerPtr& eventHandler ) const noexcept
         {
-            return std::find_if( m_handlers.cbegin(), m_handlers.cend(), [ &eventHandler ]( const TMyEventHandlerPtr& oneHandler )
+            return std::find_if( m_core.handlers.cbegin(), m_core.handlers.cend(), [ &eventHandler ]( const TMyEventHandlerPtr& oneHandler )
             {
                 return ( *oneHandler == *eventHandler );
             } );
         }
-        // использовать под залоченным для записи 'm_handlerListMutex'
-        inline void deleteHandler( TEventHandlerIt it )
-        {
-            m_handlers.erase( it );
-        }
 
-        std::list<TMyEventHandlerPtr> m_handlers;
-
-        // использовать под залоченным 'm_handlerListMutex'
-        mutable TEventHandlerIt m_currentIt;
-        mutable bool m_isCurrentItRemoved;
-
-        mutable std::shared_mutex m_handlerListMutex;
+        EventCore<TParams...> m_core;
+        std::list<TMyHandlerRunner*> m_handlerRunners;
 };
 
 
