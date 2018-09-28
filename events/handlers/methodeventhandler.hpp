@@ -91,8 +91,9 @@ class MethodHolder
             return !( *this == other );
         }
 
-        template<class TObject, class ...TParams>
-        static std::shared_ptr<MyType> create( TObject& object, TMethod method )
+        // TObject typename is reserved by the enclosing template so need something different
+        template<class TSharedObject>
+        static std::shared_ptr<MyType> create( TSharedObject& object, TMethod method )
         {
             std::shared_ptr<MyType> result( new MyType( object, method ) );
             result->m_me = result;
@@ -113,8 +114,8 @@ class MethodHolder
 
         std::weak_ptr<MyType> m_me;
 
-    template<class TMethodHolder, class ...TParams> friend class MethodEventHandler;
-    template<class TMethodHolder, class ...TParams> friend struct IsMethodParamsCompatible;
+    template<class TMethodHolder, class ...> friend class MethodEventHandler;
+    template<class TMethodHolder, class ...> friend struct IsMethodParamsCompatible;
 };
 
 

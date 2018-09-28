@@ -119,8 +119,9 @@ class FunctorHolder
             return !( *this == other );
         }
 
-        template<class TFunctor>
-        static std::shared_ptr<MyType> create( TFunctor&& functor )
+        // TFunctor typename is reserved by the enclosing template so need something different
+        template<class TArgFunctor>
+        static std::shared_ptr<MyType> create( TArgFunctor&& functor )
         {
             std::shared_ptr<MyType> result( new MyType( functor ) );
             result->m_me = result;
@@ -139,7 +140,7 @@ class FunctorHolder
 
         std::weak_ptr<MyType> m_me;
 
-    template<class TFunctor, class ...TParams> friend class FunctorEventHandler;
+    template<class TArgFunctor, class ...> friend class FunctorEventHandler;
 };
 
 

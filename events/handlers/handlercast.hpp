@@ -25,7 +25,7 @@ struct HandlerCast<std::shared_ptr<TPtr>>
     template<class ...Types>
     static constexpr TEventHandlerPtr<Types...> cast( std::shared_ptr<TPtr> some )
     {
-        return HandlerCast<TPtr>::cast<Types...>( *some );
+        return HandlerCast<TPtr>::template cast<Types ...>( *some );
     }
 };
 
