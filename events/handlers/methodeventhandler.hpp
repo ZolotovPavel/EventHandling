@@ -3,6 +3,7 @@
 #include <memory>
 #include <assert.h>
 #include "abstracteventhandler.hpp"
+#include "helpers/innerholder.hpp"
 
 
 namespace events {
@@ -19,7 +20,7 @@ namespace
         private:
 
             template<class TCheckedMethodHolder, class ...TCheckedParams>
-            static constexpr std::true_type exists( decltype( ( std::declval<TCheckedMethodHolder>().m_object.*std::declval<TCheckedMethodHolder>().m_method )( std::declval<TCheckedParams>()... ) )* = nullptr ) noexcept;
+            static constexpr std::true_type exists( decltype( ( std::declval<TCheckedMethodHolder>().m_innerHolder.get().*std::declval<TCheckedMethodHolder>().m_method )( std::declval<TCheckedParams>()... ) )* = nullptr ) noexcept;
             
             template<class TCheckedMethodHolder, class ...TCheckedParams>
             static constexpr std::false_type exists( ... ) noexcept;
@@ -51,7 +52,7 @@ class MethodEventHandler : public AbstractEventHandler<TParams...>
         {
             static_assert( IsMethodParamsCompatible<TMethodHolder, TParams...>::value, "Event and method arguments are not compatible" );
 
-            ( m_methodHolder->m_object.*m_methodHolder->m_method )( params... );
+            ( m_methodHolder->m_innerHolder.get().*m_methodHolder->m_method )( params... );
         }
 
     protected:
@@ -76,6 +77,11 @@ class MethodHolder
 
     public:
 
+        ~MethodHolder()
+        {
+            delete &m_innerHolder;
+        }
+
         template<class ...TCallParams>
         operator TEventHandlerPtr<TCallParams...>()
         {
@@ -84,7 +90,7 @@ class MethodHolder
 
         bool operator==( const MyType& other ) const noexcept
         {
-            return ( &m_object == &other.m_object && m_method == other.m_method );
+            return ( &m_innerHolder.get() == &other.m_innerHolder.get() && m_method == other.m_method );
         }
         bool operator!=( const MyType& other ) const noexcept
         {
@@ -92,24 +98,25 @@ class MethodHolder
         }
 
         // TObject typename is reserved by the enclosing template so need something different
-        template<class TSharedObject>
-        static std::shared_ptr<MyType> create( TSharedObject& object, TMethod method )
+        template<class TArgObject>
+        static std::shared_ptr<MyType> create( TArgObject&& object, TMethod method )
         {
-            std::shared_ptr<MyType> result( new MyType( object, method ) );
+            std::shared_ptr<MyType> result( new MyType( std::forward<TArgObject>( object ), method ) );
             result->m_me = result;
             return result;
         }
 
     private:
 
-        MethodHolder( TObject& object, TMethod method ) :
-            m_object( object ),
+        template<class TArgObject>
+        MethodHolder( TArgObject&& object, TMethod method ) :
+            m_innerHolder( createInnerHolder<TObject>( std::forward<TArgObject>( object ) ) ),
             m_method( method )
         {
             assert( m_method != nullptr );
         }
 
-        TObject& m_object;
+        AbstractInnerHolder<TObject>& m_innerHolder;
         TMethod m_method;
 
         std::weak_ptr<MyType> m_me;
@@ -120,9 +127,9 @@ class MethodHolder
 
 
 template<class TObject, class TResult, class ...TParams>
-std::shared_ptr<MethodHolder<TObject, TResult, TParams...>> createMethodEventHandler( TObject& object, TResult( TObject::*method )( TParams... ) )
+std::shared_ptr<MethodHolder<typename std::decay<TObject>::type, TResult, TParams...>> createMethodEventHandler( TObject&& object, TResult( std::decay<TObject>::type::*method )( TParams... ) )
 {
-    return MethodHolder<TObject, TResult, TParams...>::create( object, method );
+    return MethodHolder<std::decay<TObject>::type, TResult, TParams...>::create( std::forward<TObject>( object ), method );
 }
 
 

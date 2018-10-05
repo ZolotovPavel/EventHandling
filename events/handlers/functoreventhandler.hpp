@@ -3,6 +3,7 @@
 #include <memory>
 #include <assert.h>
 #include "abstracteventhandler.hpp"
+#include "helpers/innerholder.hpp"
 #include "../helpers/is_equatable.hpp"
 
 
@@ -54,7 +55,7 @@ class FunctorEventHandler : public AbstractEventHandler<TParams...>
         {
             static_assert( IsFunctorParamsCompatible<TFunctor, TParams...>::value, "Event and functor arguments are not compatible" );
 
-            m_functorHolder->m_functor( params... );
+            m_functorHolder->m_innerHolder.get()( params... );
         }
 
     protected:
@@ -104,6 +105,11 @@ class FunctorHolder
 
     public:
 
+        ~FunctorHolder()
+        {
+            delete &m_innerHolder;
+        }
+
         template<class ...TCallParams>
         operator TEventHandlerPtr<TCallParams...>()
         {
@@ -112,7 +118,7 @@ class FunctorHolder
 
         bool operator==( const MyType& other ) const noexcept
         {
-            return EqualityChecker<TFunctor>::isEquals( m_functor, other.m_functor );
+            return EqualityChecker<TFunctor>::isEquals( m_innerHolder.get(), other.m_innerHolder.get() );
         }
         bool operator!=( const MyType& other ) const noexcept
         {
@@ -123,20 +129,21 @@ class FunctorHolder
         template<class TArgFunctor>
         static std::shared_ptr<MyType> create( TArgFunctor&& functor )
         {
-            std::shared_ptr<MyType> result( new MyType( functor ) );
+            std::shared_ptr<MyType> result( new MyType( std::forward<TArgFunctor>( functor ) ) );
             result->m_me = result;
             return result;
         }
 
     private:
 
-        FunctorHolder( TFunctor& functor ) :
-            m_functor( functor ),
+        template<class TArgFunctor>
+        FunctorHolder( TArgFunctor&& functor ) :
+            m_innerHolder( createInnerHolder<TFunctor>( std::forward<TArgFunctor>( functor ) ) ),
             m_me()
         {
         }
 
-        TFunctor& m_functor;
+        AbstractInnerHolder<TFunctor>& m_innerHolder;
 
         std::weak_ptr<MyType> m_me;
 
@@ -145,9 +152,9 @@ class FunctorHolder
 
 
 template<class TFunctor>
-std::shared_ptr<FunctorHolder<TFunctor>> createFunctorEventHandler( TFunctor&& functor )
+std::shared_ptr<FunctorHolder<typename std::decay<TFunctor>::type>> createFunctorEventHandler( TFunctor&& functor )
 {
-    return FunctorHolder<TFunctor>::create( functor );
+    return FunctorHolder<typename std::decay<TFunctor>::type>::create( std::forward<TFunctor>( functor ) );
 }
 
 

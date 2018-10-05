@@ -116,6 +116,8 @@
     <ClInclude Include="events\handlers\eventhandlerptr.h" />
     <ClInclude Include="events\handlers\functoreventhandler.hpp" />
     <ClInclude Include="events\handlers\handlercast.hpp" />
+    <ClInclude Include="events\handlers\helpers\innerholder.hpp" />
+    <ClInclude Include="events\handlers\helpers\objectsaver.hpp" />
     <ClInclude Include="events\handlers\methodeventhandler.hpp" />
     <ClInclude Include="events\helpers\is_equatable.hpp" />
     <ClInclude Include="events\joins\abstracteventjoin.h" />

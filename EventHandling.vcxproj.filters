@@ -27,6 +27,9 @@
     <Filter Include="Source Files\events\joins">
       <UniqueIdentifier>{94ad38f2-5707-49ed-bf65-e1fcdebcbfdb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\events\handlers\helpers">
+      <UniqueIdentifier>{10125c6b-8892-4e7f-9da7-77d4f81f9cf7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="eventhandling.hpp">
@@ -67,6 +70,12 @@
     </ClInclude>
     <ClInclude Include="events\joins\handlereventjoin.hpp">
       <Filter>Header Files\events\joins</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\helpers\objectsaver.hpp">
+      <Filter>Header Files\events\handlers\helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="events\handlers\helpers\innerholder.hpp">
+      <Filter>Header Files\events\handlers\helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
